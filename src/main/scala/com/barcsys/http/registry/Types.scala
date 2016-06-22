@@ -42,6 +42,20 @@ object Types {
   case object PUT extends Method
   case object POST extends Method
   case object DELETE extends Method
+  case class CustomMethod(method: String) extends Method {
+    override def toString = method
+  }
+
+  object Method {
+    def apply(method: String): Method = method match {
+      case "GET" => GET
+      case "HEAD" => HEAD
+      case "PUT" => PUT
+      case "POST" => POST
+      case "DELETE" => DELETE
+      case _ => CustomMethod(method)
+    }
+  }
 
   case class Tag(key: String, value: String)
 
