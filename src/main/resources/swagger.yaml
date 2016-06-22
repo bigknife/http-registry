@@ -1,0 +1,107 @@
+swagger: "2.0"
+info:
+  version: 0.0.0
+  title: Http Registry API
+
+basePath: /v1
+
+paths:
+  /services:
+    post:
+      summary: 服务上线
+      description: |
+        当某个Rest服务启动时, 向服务注册中心发起`服务上线`请求, 提交服务运行的实例信息以及所属的服务信息。
+        这些信息封装在`ServiceInstanceDiscovery` json对象,作为body提交给服务端。
+
+        实例所属服务对象以服务名称和版本号为唯一标识, 服务注册中心保留最后一次上线提交的服务信息, 老的服务信息
+        会被新的服务信息覆盖, **因此要注意, 客户端要保证同一服务同一版本的服务信息应该保持一致。**
+
+      parameters:
+        - name: discovery
+          in: body
+          description: 服务发现定义, 包含服务信息以及服务实例信息
+          schema:
+            $ref: '#/definitions/ServiceInstanceDiscovery'
+          required: true
+      responses:
+        200:
+          description: 服务成功被发现
+
+
+definitions:
+  Tag:
+    type: object
+    properties:
+      key:
+        type: string
+      value:
+        type: string
+
+  Endpoint:
+    type: object
+    properties:
+      method:
+        type: string
+      url:
+        type: string
+
+  Service:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      healthCheck:
+        $ref: '#/definitions/Endpoint'
+      owner:
+        type: string
+      org:
+        type: string
+      source:
+        type: string
+      version:
+        type: string
+      status:
+        type: string
+      endpoints:
+        type: array
+        items:
+          $ref: '#/definitions/Endpoint'
+      tags:
+        type: array
+        items:
+          $ref: '#/definitions/Tag'
+
+  ServiceInstance:
+    type: object
+    properties:
+      pid:
+        type: integer
+      host:
+        type: string
+      port:
+        type: integer
+      baseUrl:
+        type: string
+      serviceId:
+        type: string
+      serviceVersion:
+        type: string
+      upTime:
+        type: integer
+        format: int64
+      tags:
+        type: array
+        items:
+          $ref: '#/definitions/Tag'
+
+  ServiceInstanceDiscovery:
+    type: object
+    properties:
+      instances:
+        type: array
+        items:
+          $ref: '#/definitions/ServiceInstance'
+      service:
+        $ref: '#/definitions/Service'

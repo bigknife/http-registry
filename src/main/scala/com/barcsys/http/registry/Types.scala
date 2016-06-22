@@ -12,6 +12,12 @@ object Types {
   sealed trait ServiceStatus
   case object Enabled extends ServiceStatus
   case object Disabled extends ServiceStatus
+  object ServiceStatus {
+    def apply(status: String): ServiceStatus = status match {
+      case "Enabled" => Enabled
+      case _ => Disabled
+    }
+  }
 
   /**
     * Service instance status, Live, Dead, or UnKnown.
@@ -21,6 +27,13 @@ object Types {
   case object Live extends ServiceInstanceStatus
   case object Dead extends ServiceInstanceStatus
   case object UnKnown extends ServiceInstanceStatus
+  object ServiceInstanceStatus {
+    def apply(status: String): ServiceInstanceStatus = status match  {
+      case "Live" => Live
+      case "Dead" => Dead
+      case _ => UnKnown
+    }
+  }
 
 
   sealed trait Method
@@ -32,30 +45,35 @@ object Types {
 
   case class Tag(key: String, value: String)
 
-  case class Endpoint(method: Method, url: String)
+  case class Endpoint(method: Method, url: String, description: String)
 
   case class Service(
-                    id: String,
-                    name: String,
-                    healthCheck: Endpoint,
-                    owner: String,
-                    org: String,
-                    source: String,
-                    version: String,
-                    status: ServiceStatus,
-                    endpoints: Vector[Endpoint],
-                    tags: Vector[Tag]
+                    id: Option[String],
+                    name: Option[String],
+                    healthCheck: Option[Endpoint],
+                    owner: Option[String],
+                    org: Option[String],
+                    source: Option[String],
+                    version: Option[String],
+                    status: Option[ServiceStatus],
+                    endpoints: Option[Vector[Endpoint]],
+                    tags: Option[Vector[Tag]]
                     )
 
   case class ServiceInstance(
-                            pid: Int,
-                            host: String,
-                            port: Int,
-                            baseUrl: String,
-                            serviceId: String,
-                            serviceVersion: String,
-                            upTime: Long,
-                            tags: Vector[Tag]
+                            pid: Option[Int],
+                            host: Option[String],
+                            port: Option[Int],
+                            baseUrl: Option[String],
+                            serviceId: Option[String],
+                            serviceVersion: Option[String],
+                            upTime: Option[Long],
+                            tags: Option[Vector[Tag]]
                             )
+
+  case class ServiceInstanceDiscovery(
+                                     instances: Vector[ServiceInstance],
+                                     service: Service
+                                     )
 
 }
