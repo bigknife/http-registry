@@ -32,7 +32,7 @@ object Protocol {
             case jsv => f(jsv)
           })
 
-        case None => None
+        case _ => None
       }
     }
 
@@ -101,8 +101,14 @@ object Protocol {
         map = map ++ obj.status.map(status => "status" -> JsString(status.toString))
 
         map = map ++ obj.healthCheck.map("healthCheck" -> EndpointFormat.write(_))
-        map = map ++ obj.endpoints.map("endpoints" -> _.map(EndpointFormat.write))
-        map = map ++ obj.tags.map("tags" -> _.map(TagFormat.write))
+        obj.endpoints.map("endpoints" -> _.map(EndpointFormat.write)).foreach {
+          case (key, vectorOfJsValue) =>
+            map = map + (key -> JsArray(vectorOfJsValue))
+        }
+        obj.tags.map("tags" -> _.map(TagFormat.write)).foreach {
+          case (key, vectorOfJsValue) =>
+            map = map + (key -> JsArray(vectorOfJsValue))
+        }
 
 
         JsObject(fields = map)
@@ -138,7 +144,10 @@ object Protocol {
         map = map ++ obj.serviceId.map("serviceId" -> JsString(_))
         map = map ++ obj.serviceVersion.map("serviceVersion" -> JsString(_))
         map = map ++ obj.upTime.map("upTime" -> JsNumber(_))
-        map = map ++ obj.tags.map("tags" -> _.map(TagFormat.write))
+
+        obj.tags.map("tags" -> _.map(TagFormat.write)).foreach {
+          case (key, vec) => map = map + (key -> JsArray(vec))
+        }
 
 
         JsObject(fields = map)

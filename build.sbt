@@ -13,11 +13,14 @@ lazy val commonSettings = Seq(
   libraryDependencies += "javax.servlet" % "javax.servlet-api" % "3.0.1" % "provided",
   libraryDependencies += "com.typesafe" % "config" % "1.3.0",
   libraryDependencies += "io.spray" %% "spray-json" % "1.3.2",
-  libraryDependencies += "io.spray" %% "spray-client" % "1.3.2"
+  libraryDependencies += "io.spray" %% "spray-client" % "1.3.2",
+  libraryDependencies += "io.dropwizard.metrics" % "metrics-core" % "3.1.2",
+  libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3"
   )
 
 
 lazy val http_registry = (project in file("."))
   .settings(commonSettings: _*)
   .settings(
+    libraryDependencies += "org.mongodb.scala" %% "mongo-scala-driver" % "1.1.1"
   )

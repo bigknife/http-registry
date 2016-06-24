@@ -10,9 +10,10 @@ object Types {
     * Service status, Enabled or Disabled
     */
   sealed trait ServiceStatus
-  case object Enabled extends ServiceStatus
-  case object Disabled extends ServiceStatus
   object ServiceStatus {
+    case object Enabled extends ServiceStatus
+    case object Disabled extends ServiceStatus
+
     def apply(status: String): ServiceStatus = status match {
       case "Enabled" => Enabled
       case _ => Disabled
@@ -24,10 +25,10 @@ object Types {
     * when the health check not confirmed, it's UnKnown.
     */
   sealed trait ServiceInstanceStatus
-  case object Live extends ServiceInstanceStatus
-  case object Dead extends ServiceInstanceStatus
-  case object UnKnown extends ServiceInstanceStatus
   object ServiceInstanceStatus {
+    case object Live extends ServiceInstanceStatus
+    case object Dead extends ServiceInstanceStatus
+    case object UnKnown extends ServiceInstanceStatus
     def apply(status: String): ServiceInstanceStatus = status match  {
       case "Live" => Live
       case "Dead" => Dead
@@ -37,16 +38,17 @@ object Types {
 
 
   sealed trait Method
-  case object GET extends Method
-  case object HEAD extends Method
-  case object PUT extends Method
-  case object POST extends Method
-  case object DELETE extends Method
   case class CustomMethod(method: String) extends Method {
     override def toString = method
   }
 
   object Method {
+    case object GET extends Method
+    case object HEAD extends Method
+    case object PUT extends Method
+    case object POST extends Method
+    case object DELETE extends Method
+
     def apply(method: String): Method = method match {
       case "GET" => GET
       case "HEAD" => HEAD
