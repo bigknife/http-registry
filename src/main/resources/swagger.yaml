@@ -21,7 +21,7 @@ paths:
           in: body
           description: 服务发现定义, 包含服务信息以及服务实例信息
           schema:
-            $ref: '#/definitions/ServiceInstanceDiscovery'
+            $ref: '#/definitions/ServiceInstance'
           required: true
       responses:
         200:
@@ -86,10 +86,6 @@ definitions:
         type: integer
       baseUrl:
         type: string
-      serviceId:
-        type: string
-      serviceVersion:
-        type: string
       upTime:
         type: integer
         format: int64
@@ -97,13 +93,7 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Tag'
-
-  ServiceInstanceDiscovery:
-    type: object
-    properties:
-      instances:
-        type: array
-        items:
-          $ref: '#/definitions/ServiceInstance'
+      status:
+        type: string
       service:
-        $ref: '#/definitions/Service'
+        $ref: "#/definitions/Service"

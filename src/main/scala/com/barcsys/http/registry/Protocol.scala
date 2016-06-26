@@ -1,9 +1,9 @@
 package com.barcsys.http.registry
 
+import com.barcsys.http.registry.Types.Method.HEAD
 import com.barcsys.http.registry.Types._
 import spray.json.{DefaultJsonProtocol, DeserializationException, JsArray, JsNumber, JsObject, JsString, JsValue, RootJsonFormat}
 
-import scala.util.{Failure, Success, Try}
 
 /**
   * Created by bigknife on 16/6/22.
@@ -16,6 +16,10 @@ object Protocol {
         case Seq(x) => Some(x)
         case _ => None
       }
+    }
+
+    def fieldWith[A](name: String, jsObject: JsObject)(f: JsValue => A): Option[A] = {
+      fieldOf(name, jsObject).map(f)
     }
 
     def jsObjectValueOf[A](name: String, jsObject: JsObject)(f: JsValue => A): Option[A] = {
@@ -43,6 +47,10 @@ object Protocol {
       }
     }
 
+    def stringWith[A](name: String, jsObj: JsObject)(f: String => A): Option[A] = {
+      stringOf(name, jsObj).map(f)
+    }
+
     def bigdecimalOf(name: String, jsObject: JsObject): Option[BigDecimal] = {
       fieldOf(name, jsObject) match {
         case Some(JsNumber(x)) => Some(x)
@@ -59,147 +67,152 @@ object Protocol {
     }
   }
 
-  object ServiceInstanceDiscoveryProtocol extends DefaultJsonProtocol {
+  object ServiceProtocol extends DefaultJsonProtocol {
 
-    implicit object ServiceInstanceDiscoveryFormat extends RootJsonFormat[ServiceInstanceDiscovery] {
-      def write(obj: ServiceInstanceDiscovery): JsValue = {
-        JsObject("service" -> ServiceFormat.write(obj.service),
-          "instances" -> JsArray(obj.instances.map(ServiceInstanceFormat.write)))
-      }
-
-      def read(json: JsValue): ServiceInstanceDiscovery = {
-        val jsObj = json.asJsObject
-
-        //parse service and instances
-        jsObj.getFields("service", "instances") match {
-          case Seq(srv, ins) =>
-            val service = ServiceFormat.read(srv)
-
-            val instanceArr = ins.asInstanceOf[JsArray]
-            val serviceInstances = instanceArr.elements.map {
-              case jsValue => ServiceInstanceFormat.read(jsValue)
-            }
-
-            ServiceInstanceDiscovery(serviceInstances, service)
-
-          case _ => throw new DeserializationException("ServiceInstanceDiscovery expected")
-        }
-
-      }
-    }
-
-    implicit object ServiceFormat extends RootJsonFormat[Service] {
-      def write(obj: Service): JsValue = {
-        var map: Map[String, JsValue] = Map.empty
-
-        map = map ++ obj.id.map("id" -> JsString(_))
-        map = map ++ obj.name.map("name" -> JsString(_))
-        map = map ++ obj.owner.map("owner" -> JsString(_))
-        map = map ++ obj.org.map("org" -> JsString(_))
-        map = map ++ obj.source.map("source" -> JsString(_))
-        map = map ++ obj.version.map("version" -> JsString(_))
-        map = map ++ obj.status.map(status => "status" -> JsString(status.toString))
-
-        map = map ++ obj.healthCheck.map("healthCheck" -> EndpointFormat.write(_))
-        obj.endpoints.map("endpoints" -> _.map(EndpointFormat.write)).foreach {
-          case (key, vectorOfJsValue) =>
-            map = map + (key -> JsArray(vectorOfJsValue))
-        }
-        obj.tags.map("tags" -> _.map(TagFormat.write)).foreach {
-          case (key, vectorOfJsValue) =>
-            map = map + (key -> JsArray(vectorOfJsValue))
-        }
-
-
-        JsObject(fields = map)
-      }
-
-      def read(json: JsValue): Service = {
-        import JsonUtil._
-        val jso = json.asJsObject
-        val _id = stringOf("id", jso)
-        val _name = stringOf("name", jso)
-        val _org = stringOf("org", jso)
-        val _owner = stringOf("owner", jso)
-        val _source = stringOf("source", jso)
-        val _version = stringOf("version", jso)
-        val _status = stringOf("status", jso).map(ServiceStatus.apply)
-
-        val _healthCheck = jsObjectValueOf("healthCheck", jso)(EndpointFormat.read)
-        val _endpoints = jsArrayValueOf("endpoints", jso)(EndpointFormat.read)
-        val _tags = jsArrayValueOf("tags", jso)(TagFormat.read)
-
-        Service(_id, _name, _healthCheck, _owner, _org, _source, _version, _status, _endpoints, _tags)
-      }
-    }
-
-    implicit object ServiceInstanceFormat extends RootJsonFormat[ServiceInstance] {
-      def write(obj: ServiceInstance): JsValue = {
-        var map: Map[String, JsValue] = Map.empty
-
-        map = map ++ obj.pid.map("pid" -> JsNumber(_))
-        map = map ++ obj.host.map("host" -> JsString(_))
-        map = map ++ obj.port.map("port" -> JsNumber(_))
-        map = map ++ obj.baseUrl.map("baseUrl" -> JsString(_))
-        map = map ++ obj.serviceId.map("serviceId" -> JsString(_))
-        map = map ++ obj.serviceVersion.map("serviceVersion" -> JsString(_))
-        map = map ++ obj.upTime.map("upTime" -> JsNumber(_))
-
-        obj.tags.map("tags" -> _.map(TagFormat.write)).foreach {
-          case (key, vec) => map = map + (key -> JsArray(vec))
-        }
-
-
-        JsObject(fields = map)
-      }
-
-      def read(json: JsValue): ServiceInstance = {
-        val jso = json.asJsObject
-        import JsonUtil._
-        val _pid = intOf("pid", jso)
-        val _host = stringOf("host", jso)
-        val _port = intOf("port", jso)
-        val _baseUrl = stringOf("baseUrl", jso)
-        val _serviceId = stringOf("serviceId", jso)
-        val _serviceVersion = stringOf("serviceVersion", jso)
-        val _upTime = longOf("upTime", jso)
-        val _tags = jsArrayValueOf("tags", jso)(TagFormat.read)
-
-        ServiceInstance(_pid, _host, _port, _baseUrl, _serviceId, _serviceVersion, _upTime, _tags)
-      }
-    }
+    import JsonUtil._
 
     implicit object TagFormat extends RootJsonFormat[Tag] {
-      def write(obj: Tag): JsValue = JsObject(
-        "key" -> JsString(obj.key),
-        "value" -> JsString(obj.value)
-      )
-
       def read(json: JsValue): Tag = {
-        json.asJsObject.getFields("key", "value") match {
-          case Seq(JsString(k), JsString(v)) => Tag(k, v)
+        stringOf("key", json.asJsObject) match {
+          case None => throw new DeserializationException("Tag expected")
+          case Some(k) => Tag(k, stringOf("value", json.asJsObject))
+        }
+      }
 
-          case _ => throw new DeserializationException("Tag expected")
+      def write(obj: Tag): JsValue = {
+        obj.value match {
+          case None => JsObject("key" -> JsString(obj.key))
+          case Some(v) => JsObject("key" -> JsString(obj.key), "value" -> JsString(v))
         }
       }
     }
 
     implicit object EndpointFormat extends RootJsonFormat[Endpoint] {
+      def read(json: JsValue): Endpoint = {
+        val method = stringOf("method", json.asJsObject)
+        val url = stringOf("url", json.asJsObject)
+        val description = stringOf("description", json.asJsObject)
+
+        Endpoint(method.fold[Method](HEAD)(Method.apply),
+          url.fold[String]("/heartbeat")(x => x),
+          description.fold[String]("")(x => x))
+      }
+
       def write(obj: Endpoint): JsValue = JsObject(
         "method" -> JsString(obj.method.toString),
         "url" -> JsString(obj.url),
         "description" -> JsString(obj.description)
       )
 
+    }
 
-      def read(json: JsValue): Endpoint = {
-        json.asJsObject.getFields("method", "url", "description") match {
-          case Seq(JsString(m), JsString(u), JsString(d)) => Endpoint(Method(m), u, d)
-          case _ => throw new DeserializationException("Endpoint expected")
+    implicit object ServiceFormat extends RootJsonFormat[Service] {
+      def read(json: JsValue): Service = {
+        val jso = json.asJsObject
+
+        val uid = stringOf("uid", jso)
+        val id = stringOf("id", jso)
+        val name = stringOf("name", jso)
+        val healthCheck = jsObjectValueOf[Endpoint]("healthCheck", jso)(EndpointFormat.read)
+        val owner = stringOf("owner", jso)
+        val org = stringOf("org", jso)
+        val source = stringOf("source", jso)
+        val version = stringOf("version", jso)
+        val endpoints = jsArrayValueOf[Endpoint]("endpoints", jso)(EndpointFormat.read)
+        val tags = jsArrayValueOf[Tag]("tags", jso)(TagFormat.read)
+        val status = stringWith[ServiceStatus]("status", jso)(ServiceStatus.apply)
+
+        Service(uid, id, name, healthCheck, owner, org, source, version, endpoints, tags, status)
+      }
+
+      def write(obj: Service): JsValue = {
+        val map = Vector(
+          "uid" -> obj.uid,
+          "id" -> obj.id,
+          "name" -> obj.name,
+          "healthCheck" -> obj.healthCheck,
+          "owner" -> obj.owner,
+          "org" -> obj.org,
+          "source" -> obj.source,
+          "version" -> obj.version,
+          "endpoints" -> obj.endpoints,
+          "tags" -> obj.tags,
+          "status" -> obj.status
+        ).foldLeft[Map[String, JsValue]](Map.empty) { (z, p) =>
+          p match {
+            case (k, Some(x)) => x match {
+              case v: String => z + (k -> JsString(v))
+              case v: Endpoint => z + (k -> EndpointFormat.write(v))
+              case v: Vector[_] if k == "endpoints" =>
+                val jsoEndpoints = v.foldLeft[Vector[JsValue]](Vector.empty) { (z0, p0) =>
+                  z0 :+ EndpointFormat.write(p0.asInstanceOf)
+                }
+                z + (k -> JsArray(jsoEndpoints))
+              case v: Vector[_] if k == "tags" =>
+                val jsoTags = v.foldLeft[Vector[JsValue]](Vector.empty) { (z1, p1) =>
+                  z1 :+ TagFormat.write(p1.asInstanceOf)
+                }
+                z + (k -> JsArray(jsoTags))
+              case v: ServiceStatus => z + (k -> JsString(v.toString))
+            }
+            //if value is None, ignore
+            case _ => z
+          }
         }
+
+        JsObject(map)
+      }
+    }
+
+    implicit object ServiceInstanceFormat extends RootJsonFormat[ServiceInstance] {
+      def read(json: JsValue): ServiceInstance = {
+        val jso = json.asJsObject
+        val uid = stringOf("uid", jso)
+        val pid = intOf("pid", jso)
+        val host = stringOf("host", jso)
+        val port = intOf("port", jso)
+        val baseUrl = stringOf("baseUrl", jso)
+        val service = jsObjectValueOf[Service]("service", jso)(ServiceFormat.read)
+        val upTime = longOf("upTime", jso)
+        val tags = jsArrayValueOf[Tag]("tags", jso)(TagFormat.read)
+        val status = stringWith[ServiceInstanceStatus]("status", jso)(ServiceInstanceStatus.apply)
+
+        ServiceInstance(uid, pid, host, port, baseUrl, service, upTime, tags, status)
+      }
+
+      def write(obj: ServiceInstance): JsValue = {
+        val map:Map[String, JsValue] = Vector(
+          "uid" -> obj.uid,
+          "pid" -> obj.pid,
+          "host" -> obj.host,
+          "port" -> obj.port,
+          "baseUrl" -> obj.baseUrl,
+          "service" -> obj.service,
+          "upTime" -> obj.upTime,
+          "tags" -> obj.tags,
+          "status" -> obj.status
+        ).foldLeft[Map[String,JsValue]](Map.empty){(z, p) =>
+          p match {
+            case (k, Some(x)) => x match {
+              case v: String => z + (k -> JsString(v))
+              case v: Int => z + (k -> JsNumber(v))
+              case v: Long => z + (k -> JsNumber(v))
+              case v: Service => z + (k -> ServiceFormat.write(v))
+              case v: ServiceInstanceStatus => z + (k -> JsString(v.toString))
+              case v: Vector[_] if k == "tags" =>
+                val jsonTags = v.foldLeft[Vector[JsValue]](Vector.empty) {(z0, p0) =>
+                  z0 :+ TagFormat.write(p0.asInstanceOf)
+                }
+                z + (k -> JsArray(jsonTags))
+            }
+
+            case _ => z
+          }
+        }
+
+        JsObject(map)
       }
     }
 
   }
-
 }
