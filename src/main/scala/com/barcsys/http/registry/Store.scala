@@ -58,7 +58,7 @@ object Store {
 
 
     implicit val serviceToDocument: Service => Document = s => {
-      (Vector.empty[(String, Option[Any])] ++ s)
+      (Vector.empty[(String, Option[Any])] ++ serviceToVector(s))
         .foldLeft[Document](Document.empty) { (z, p) =>
         p match {
           case (_, None) => z
@@ -76,6 +76,8 @@ object Store {
               }
               z + (k -> docs)
 
+            case "uid" => z + ("_id" -> v.toString)
+
             case _ => z + (k -> v.toString) // "status" and other key 's values can be toString
           }
         }
@@ -84,8 +86,7 @@ object Store {
     }
 
     implicit val serviceInstance2Document: ServiceInstance => Document = si => {
-      val s = Vector.empty[(String, Option[Any])] ++ serviceInstanceToVector(si)
-      (Vector.empty[(String, Option[Any])] ++ si)
+      (Vector.empty[(String, Option[Any])] ++ serviceInstanceToVector(si))
         .foldLeft[Document](Document.empty) { (z, p) =>
         p match {
           case (_, None) => z
@@ -96,6 +97,8 @@ object Store {
                 z0 :+ tagToDocument(e0)
               }
               z + (k -> docs)
+
+            case "uid" => z + ("_id" -> v.toString)
 
             case "status" => z + (k -> v.toString)
             case _ => v match {
@@ -116,12 +119,9 @@ object Store {
                          (implicit mongoClient: MongoClient, dbName: String,
                           ec: ExecutionContext, f: ServiceInstance => Document): Future[ServiceInstance] = {
 
-    val collectioName = "service_instances"
+    lazy val collectioName = "service_instances"
     val collection = mongoClient.getDatabase(dbName).getCollection(collectioName)
-    val updateOptions = UpdateOptions()
-    updateOptions.upsert(true)
-    collection.updateOne(Document("_id" -> serviceInstance.uid), f(serviceInstance), options = updateOptions)
-      .toFuture().map[ServiceInstance](_ => serviceInstance)
+    collection.insertOne(f(serviceInstance)).toFuture().map[ServiceInstance](_ => serviceInstance)
   }
 
 

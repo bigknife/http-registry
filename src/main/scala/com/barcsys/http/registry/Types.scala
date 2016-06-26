@@ -25,8 +25,7 @@ object Types {
       "status" -> obj.status
     )
 
-    implicit def serviceInstanceToVector(obj: ServiceInstance): Vector[(String, Option[Any])] = {
-
+    implicit def serviceInstanceToVector(obj: ServiceInstance): Vector[(String, Option[Any])] =
       Vector(
       "uid" -> obj.uid,
       "pid" -> obj.pid,
@@ -38,8 +37,6 @@ object Types {
       "tags" -> obj.tags,
       "status" -> obj.status
     )
-
-    }
   }
 
   /**
