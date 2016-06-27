@@ -214,5 +214,14 @@ object Protocol {
       }
     }
 
+    implicit object ServiceInstanceFilterFormat extends RootJsonFormat[ServiceInstanceFilter] {
+      def read(json: JsValue): ServiceInstanceFilter = {
+        val jso = json.asJsObject
+        
+      }
+
+      def write(obj: ServiceInstanceFilter): JsValue = ???
+    }
+
   }
 }

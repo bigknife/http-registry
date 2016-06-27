@@ -2,7 +2,7 @@ package com.barcsys.http.registry
 
 import akka.actor.{Actor, ActorContext, ActorRef, ActorSelection, ActorSystem, Props}
 import com.barcsys.http.registry.CommonActors.{MemCache, PersistedStore}
-import com.barcsys.http.registry.Types.ServiceInstance
+import com.barcsys.http.registry.Types.{ServiceInstance, ServiceInstanceFilter}
 import spray.can.Http
 import spray.http.StatusCodes._
 import spray.http.HttpMethods._
@@ -10,6 +10,7 @@ import spray.json._
 import akka.pattern.ask
 import akka.util.Timeout
 import com.barcsys.http.registry.BizActors.Heartbeat.CheckAllMsg
+import com.barcsys.http.registry.BizActors.ServiceInstanceFilterActor.QueryServiceInstanceMsg
 import com.barcsys.http.registry.BizActors.ServicesRegister.ServiceRegistration
 import spray.http._
 import spray.client.pipelining._
@@ -35,6 +36,7 @@ object BizActors {
     import com.barcsys.http.registry.BizActors.ServicesRegister._
 
     lazy val serviceRegister = ServicesRegister.createChildActorRef
+    lazy val serviceInstanceFilter = ServiceInstanceFilterActor.createChildActor
 
     //被封装的偏函数, 子类实现该方法, 完成标准的消息处理
     def wrappedReceive: Receive = {
@@ -43,6 +45,10 @@ object BizActors {
       case HttpRequest(POST, Uri.Path("/v1/services"), _, entity, _) =>
         val client = sender
         serviceRegister ! ServiceRegistration(client, entity)
+
+      case HttpRequest(POST, Uri.Path("/v1/services/filter"), _, entity, _) =>
+        val client = sender
+        serviceInstanceFilter ! QueryServiceInstanceMsg(client, entity)
 
       case x: HttpRequest => sender ! HttpResponse(status = NotFound, entity = "Resource Not Found")
     }
@@ -185,4 +191,23 @@ object BizActors {
     }
   }
 
+  class ServiceInstanceFilterActor extends BaseActor {
+    //被封装的偏函数, 子类实现该方法, 完成标准的消息处理
+    def wrappedReceive: Receive = {
+      case QueryServiceInstanceMsg(client, entity) =>
+        //todo 处理
+    }
+  }
+
+  object ServiceInstanceFilterActor {
+    case class QueryServiceInstanceMsg(sender: ActorRef, entity: HttpEntity)
+
+    def createChildActor(implicit context: ActorContext): ActorRef = {
+      context.actorOf(Props[ServiceInstanceFilterActor], "service-instance-filter")
+    }
+
+    def selectActorFromContext(implicit context: ActorContext): ActorSelection = {
+      context.actorSelection("/user/http-listener/service-instance-filter")
+    }
+  }
 }

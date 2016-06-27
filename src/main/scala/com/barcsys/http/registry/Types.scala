@@ -27,16 +27,16 @@ object Types {
 
     implicit def serviceInstanceToVector(obj: ServiceInstance): Vector[(String, Option[Any])] =
       Vector(
-      "uid" -> obj.uid,
-      "pid" -> obj.pid,
-      "host" -> obj.host,
-      "port" -> obj.port,
-      "baseUrl" -> obj.baseUrl,
-      "service" -> obj.service,
-      "upTime" -> obj.upTime,
-      "tags" -> obj.tags,
-      "status" -> obj.status
-    )
+        "uid" -> obj.uid,
+        "pid" -> obj.pid,
+        "host" -> obj.host,
+        "port" -> obj.port,
+        "baseUrl" -> obj.baseUrl,
+        "service" -> obj.service,
+        "upTime" -> obj.upTime,
+        "tags" -> obj.tags,
+        "status" -> obj.status
+      )
   }
 
   /**
@@ -174,5 +174,19 @@ object Types {
                               tags: Option[Vector[Tag]],
                               status: Option[ServiceInstanceStatus] = Some(Waiting)
                             )
+
+  /**
+    * 服务实例查询过滤器
+    *
+    * @param serviceId           服务ID
+    * @param serviceVersion      服务版本号
+    * @param serviceTags         服务标签列表
+    * @param serviceInstanceTags 服务实例标签列表
+    */
+  case class ServiceInstanceFilter(serviceId: Option[String],
+                                   serviceVersion: Option[String],
+                                   serviceTags: Option[Vector[Tag]],
+                                   serviceInstanceTags: Option[Vector[Tag]]
+                                  )
 
 }

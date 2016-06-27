@@ -17,15 +17,31 @@ paths:
         会被新的服务信息覆盖, **因此要注意, 客户端要保证同一服务同一版本的服务信息应该保持一致。**
 
       parameters:
-        - name: discovery
+        - name: serviceInstance
           in: body
-          description: 服务发现定义, 包含服务信息以及服务实例信息
+          description: 服务实例信息
           schema:
             $ref: '#/definitions/ServiceInstance'
           required: true
       responses:
         200:
           description: 服务成功被发现
+  /services/filter:
+    post:
+      summary: 按条件过滤服务,返回服务列表信息
+      parameters:
+        - name: filter
+          in: body
+          description: 服务查询过滤参数
+          schema:
+            $ref: '#/definitions/ServiceInstanceFilter'
+      responses:
+        200:
+          description: 符合条件的服务列表
+          schema:
+            $ref: '#/definitions/ServiceInstanceList'
+
+
 
 
 definitions:
@@ -97,3 +113,24 @@ definitions:
         type: string
       service:
         $ref: "#/definitions/Service"
+
+  ServiceInstanceFilter:
+    type: object
+    properties:
+      serviceId:
+        type: string
+      serviceVersion:
+        type: string
+      serviceTags:
+        type: array
+        items:
+          $ref: '#/definitions/Tag'
+      serviceInstanceTags:
+        type: array
+        items:
+          $ref: '#/definitions/Tag'
+
+  ServiceInstanceList:
+    type: array
+    items:
+      $ref: '#/definitions/ServiceInstance'

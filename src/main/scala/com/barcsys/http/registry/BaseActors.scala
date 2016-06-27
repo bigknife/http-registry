@@ -69,4 +69,6 @@ object BaseActors {
     }
   }
 
+  abstract class BaseActor extends Actor with Slf4jLogging with ActorMetrics with ActorMessageTrack
+
 }
