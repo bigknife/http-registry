@@ -17,7 +17,7 @@ import spray.client.pipelining._
 
 import scala.concurrent.duration._
 import com.barcsys.http.registry.CommonActors.MemCache.{GetAll, GetMsg, PutMsg}
-import com.barcsys.http.registry.CommonActors.PersistedStore.{SaveServiceInstanceMsg, UpdateServiceInstance}
+import com.barcsys.http.registry.CommonActors.PersistedStore.{FilterServiceInstanceMsg, SaveServiceInstanceMsg, UpdateServiceInstanceMsg}
 import com.barcsys.http.registry.Types.ServiceInstanceStatus.{Lost, Running, Unavailable, Waiting}
 import com.barcsys.http.registry.Types.ServiceStatus.Enabled
 
@@ -128,14 +128,14 @@ object BizActors {
                     val nsi = si.copy(status = Some(Running))
                     //update nsi
                     MemCache.selectActorFromContext ! PutMsg(nsi.uid.get, nsi)
-                    PersistedStore.selectActorFromContext ! UpdateServiceInstance(nsi)
+                    PersistedStore.selectActorFromContext ! UpdateServiceInstanceMsg(nsi)
 
                   case s if s >= 300 =>
                     //服务不可用
                     val nsi = si.copy(status = Some(Unavailable))
                     //update nsi
                     MemCache.selectActorFromContext ! PutMsg(nsi.uid.get, nsi)
-                    PersistedStore.selectActorFromContext ! UpdateServiceInstance(nsi)
+                    PersistedStore.selectActorFromContext ! UpdateServiceInstanceMsg(nsi)
                 }
               }
 
@@ -145,7 +145,7 @@ object BizActors {
                   //服务lost
                   val nsi = si.copy(status = Some(Lost))
                   MemCache.selectActorFromContext ! PutMsg(nsi.uid.get, nsi)
-                  PersistedStore.selectActorFromContext ! UpdateServiceInstance(nsi)
+                  PersistedStore.selectActorFromContext ! UpdateServiceInstanceMsg(nsi)
               }
 
           }
@@ -195,7 +195,16 @@ object BizActors {
     //被封装的偏函数, 子类实现该方法, 完成标准的消息处理
     def wrappedReceive: Receive = {
       case QueryServiceInstanceMsg(client, entity) =>
-        //todo 处理
+        val bodyString = entity.asString
+        import Protocol.ServiceProtocol._
+        val serviceInstanceFilter = bodyString.parseJson.convertTo[ServiceInstanceFilter]
+        val future = PersistedStore.selectActorFromContext ? FilterServiceInstanceMsg(serviceInstanceFilter)
+        future.onSuccess {
+          case x: Vector[_/*ServiceInstance*/] =>
+            import spray.http.ContentTypes._
+            val response = HttpResponse(entity = HttpEntity(contentType = `application/json`, x.toJson.compactPrint))
+            client ! response
+        }
     }
   }
 
