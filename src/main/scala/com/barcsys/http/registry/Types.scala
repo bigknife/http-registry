@@ -68,17 +68,18 @@ object Types {
 
   object ServiceInstanceStatus {
 
-    case object Live extends ServiceInstanceStatus
+    case object Running extends ServiceInstanceStatus
 
-    case object Dead extends ServiceInstanceStatus
+    case object Lost extends ServiceInstanceStatus
 
     case object Waiting extends ServiceInstanceStatus
 
-    case object Timeout extends ServiceInstanceStatus
+    case object Unavailable extends ServiceInstanceStatus
 
     def apply(status: String): ServiceInstanceStatus = status match {
-      case "Live" => Live
-      case "Dead" => Dead
+      case "Running" => Running
+      case "Lost" => Lost
+      case "Unavailable" => Unavailable
       case "Waiting" => Waiting
     }
   }

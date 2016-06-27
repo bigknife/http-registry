@@ -86,7 +86,7 @@ object Misc {
       scheme + "://" + ((user, password) match {
         case (Some(x), Some(y)) => x + "@" + y + ":"
         case _ => ""
-      } ) + (addresses match {
+      }) + (addresses match {
         case None => ""
         case Some(x) => (x map {
           case (host, Some(port)) => host + ":" + port
@@ -95,7 +95,7 @@ object Misc {
       }) + (path match {
         case None => ""
         case Some(p) => if (p.startsWith("/")) p else "/" + p
-      })+ (if (queries.isDefined) "?" else "") + (queries match {
+      }) + (if (queries.isDefined) "?" else "") + (queries match {
         case None => ""
         case Some(x) => x.foldLeft(Vector.empty[String])({ (vs, kv) =>
           vs :+ (kv match {
@@ -216,5 +216,4 @@ object Misc {
       arr.foldLeft(Map.empty[String, Option[String]])(_ + _)
     }
   }
-
 }

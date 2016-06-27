@@ -48,7 +48,7 @@ object BaseActors {
       .convertRatesTo(TimeUnit.SECONDS)
       .convertDurationsTo(TimeUnit.MILLISECONDS)
       .build()
-      .start(1, TimeUnit.MINUTES)
+      .start(5, TimeUnit.MINUTES)
 
     override def receive: Receive = {
       case x =>
@@ -61,10 +61,10 @@ object BaseActors {
     }
   }
 
-  trait ActorMessageTrack extends ActorStack {
+  trait ActorMessageTrack extends ActorStack with Slf4jLogging {
     override def receive: Receive = {
       case x =>
-        println(s"${sender()} -> $x -> $self")
+        logger.info(s"${sender()} -> ${x.getClass}#${x.hashCode()} -> $self")
         super.receive(x)
     }
   }

@@ -2,6 +2,8 @@ package com.barcsys.http.registry
 
 
 import com.barcsys.http.registry.Misc.ConnectionString
+import com.barcsys.http.registry.Types.Method.GET
+import com.barcsys.http.registry.Types.ServiceStatus.Enabled
 import com.barcsys.http.registry.Types._
 import com.mongodb.ServerAddress
 import org.mongodb.scala.{Document, MongoClient, MongoClientSettings, MongoCredential}
@@ -51,10 +53,23 @@ object Store {
       }
     }
 
+    implicit val documentToTag: Document => Tag = doc => {
+      val key = doc.get("key").fold[String]("")(_.asString().getValue)
+      val value = doc.get("value").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      Tag(key, value)
+    }
+
     implicit val endpointToDocument: Endpoint => Document = endpoint => Document(
       "method" -> endpoint.method.toString,
       "url" -> endpoint.url,
       "description" -> endpoint.description)
+
+    implicit val documentToEndpoint: Document => Endpoint = doc => {
+      val method = doc.get("method").fold[Method](GET)(x => Method(x.asString().getValue))
+      val url = doc.get("url").fold[String]("")(_.asString().getValue)
+      val description = doc.get("description").fold("")(_.asString().getValue)
+      Endpoint(method, url, description)
+    }
 
 
     implicit val serviceToDocument: Service => Document = s => {
@@ -82,7 +97,53 @@ object Store {
           }
         }
       }
+    }
 
+    implicit val documentToService: Document => Service = doc => {
+      import scala.collection.JavaConverters._
+      val uid = doc.get("_id").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val id = doc.get("id").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val name = doc.get("name").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val owner = doc.get("owner").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val org = doc.get("org").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val source = doc.get("source").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val version = doc.get("version").fold[Option[String]](None)(x => Some(x.asString().getValue))
+
+      val tags = doc.get("tags").fold[Option[Vector[Tag]]](None)(x =>
+        Some(x.asArray().getValues.asScala.foldLeft(Vector.empty[Tag]) { (z, bsonvalue) =>
+          z :+ documentToTag(Document(bsonvalue.asDocument()))
+        }))
+      val healthCheck = doc.get("healthCheck").fold[Option[Endpoint]](None)(x =>
+        Some(documentToEndpoint(Document(x.asDocument()))))
+      val endpoints = doc.get("endpoints").fold[Option[Vector[Endpoint]]](None)(
+        x => Some(x.asArray().getValues.asScala.foldLeft(Vector.empty[Endpoint]) { (z, bsonvalue) =>
+          z :+ documentToEndpoint(Document(bsonvalue.asDocument()))
+        })
+      )
+      val status = doc.get("status").fold[Option[ServiceStatus]](None)(x =>
+        Some(ServiceStatus(x.asString().getValue)))
+
+      Service(uid, id, name, healthCheck, owner, org, source, version, endpoints, tags, status)
+    }
+
+    implicit val documentToServiceInstance: Document => ServiceInstance = doc => {
+      import scala.collection.JavaConverters._
+
+      val uid = doc.get("_id").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val pid = doc.get("pid").fold[Option[Int]](None)(x => Some(x.asInt32().getValue))
+      val host = doc.get("host").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val port = doc.get("port").fold[Option[Int]](None)(x => Some(x.asInt32().getValue))
+      val baseUrl = doc.get("baseUrl").fold[Option[String]](None)(x => Some(x.asString().getValue))
+      val upTime = doc.get("upTime").fold[Option[Long]](None)(x => Some(x.asInt64().getValue))
+      val tags = doc.get("tags").fold[Option[Vector[Tag]]](None)(x =>
+        Some(x.asArray().getValues.asScala.foldLeft(Vector.empty[Tag]) { (z, bsonvalue) =>
+          z :+ documentToTag(Document(bsonvalue.asDocument()))
+        }))
+      val status = doc.get("status").fold[Option[ServiceInstanceStatus]](None)(x =>
+        Some(ServiceInstanceStatus(x.asString().getValue)))
+      val service = doc.get("service").fold[Option[Service]](None)(x =>
+        Some(documentToService(Document(x.asDocument()))))
+      ServiceInstance(uid, pid, host, port, baseUrl, service, upTime, tags, status)
     }
 
     implicit val serviceInstance2Document: ServiceInstance => Document = si => {
@@ -121,7 +182,37 @@ object Store {
 
     lazy val collectioName = "service_instances"
     val collection = mongoClient.getDatabase(dbName).getCollection(collectioName)
-    collection.insertOne(f(serviceInstance)).toFuture().map[ServiceInstance](_ => serviceInstance)
+
+    val future = collection.insertOne(f(serviceInstance)).toFuture().map[ServiceInstance](_ => serviceInstance)
+    future.onFailure {
+      case t => //尝试update一次
+        collection.replaceOne(Document("_id" -> serviceInstance.uid.get), serviceInstance)
+    }
+    future
+  }
+
+  def updateServiceInstance(serviceInstance: ServiceInstance)
+                           (implicit mongoClient: MongoClient, dbName: String,
+                            ec: ExecutionContext, f: ServiceInstance => Document): Future[ServiceInstance] = {
+    lazy val collectioName = "service_instances"
+    val collection = mongoClient.getDatabase(dbName).getCollection(collectioName)
+    collection.replaceOne(Document("_id" -> serviceInstance.uid.get),f(serviceInstance)).toFuture().map[ServiceInstance](_ => serviceInstance)
+  }
+
+  def findEnabledServiceInstances(implicit mongoClient: MongoClient,
+                                  dbName: String,
+                                  ec: ExecutionContext,
+                                  f: Document => ServiceInstance): Future[Vector[ServiceInstance]] = {
+    lazy val collectionName = "service_instances"
+    val collection = mongoClient.getDatabase(dbName).getCollection(collectionName)
+
+    //Document("status" -> Enabled.toString)
+    collection.find().toFuture().map {
+      case docs =>
+        docs.foldLeft[Vector[ServiceInstance]](Vector.empty) { (z, doc) =>
+        z :+ f(doc)
+      }
+    }
   }
 
 
