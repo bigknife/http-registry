@@ -173,6 +173,39 @@ object Store {
         }
       }
     }
+
+    implicit val serviceInstanceFilterToDocument: ServiceInstanceFilter => Document = sif => {
+
+      (Vector.empty[(String, Option[Any])] ++ serviceInstanceFilterToVector(sif))
+        .foldLeft[Document](Document.empty) {(z, p) =>
+        p match {
+          case (_, None) => z
+          case (k, Some(v)) => k match {
+            case "serviceId" => z + ("service.id" -> v.toString)
+            case "serviceVersion" => z + ("service.version" -> v.toString)
+            case "serviceTags" =>
+              v.asInstanceOf[Vector[Tag]].foldLeft[Document](z) { (z0, e0) =>
+                e0.value match {
+                  case None => z0 + ("service.tags.key" -> e0.key)
+                  case Some(v0) => z0 + ("service.tags.key" -> e0.key, "tags.value" -> v0)
+                }
+              }
+            case "serviceInstanceTags" =>
+              v.asInstanceOf[Vector[Tag]].foldLeft[Document](z) { (z0, e0) =>
+                e0.value match {
+                  case None => z0 + ("tags.key" -> e0.key)
+                  case Some(v0) => z0 + ("tags.key" -> e0.key, "tags.value" -> v0)
+                }
+              }
+            case "status" =>
+              z + ("status" -> v.toString)
+
+            case _ => z
+          }
+          case _ => z
+        }
+      }
+    }
   }
 
 
@@ -182,11 +215,12 @@ object Store {
 
     lazy val collectioName = "service_instances"
     val collection = mongoClient.getDatabase(dbName).getCollection(collectioName)
+    val document = f(serviceInstance)
 
-    val future = collection.insertOne(f(serviceInstance)).toFuture().map[ServiceInstance](_ => serviceInstance)
+    val future = collection.insertOne(document).toFuture().map[ServiceInstance](_ => serviceInstance)
     future.onFailure {
       case t => //尝试update一次
-        collection.replaceOne(Document("_id" -> serviceInstance.uid.get), serviceInstance)
+        collection.replaceOne(Document("_id" -> serviceInstance.uid.get), document)
     }
     future
   }
@@ -196,24 +230,32 @@ object Store {
                             ec: ExecutionContext, f: ServiceInstance => Document): Future[ServiceInstance] = {
     lazy val collectioName = "service_instances"
     val collection = mongoClient.getDatabase(dbName).getCollection(collectioName)
-    collection.replaceOne(Document("_id" -> serviceInstance.uid.get),f(serviceInstance)).toFuture().map[ServiceInstance](_ => serviceInstance)
+    collection.replaceOne(Document("_id" -> serviceInstance.uid.get), f(serviceInstance)).toFuture().map[ServiceInstance](_ => serviceInstance)
   }
 
   def findEnabledServiceInstances(implicit mongoClient: MongoClient,
                                   dbName: String,
                                   ec: ExecutionContext,
                                   f: Document => ServiceInstance): Future[Vector[ServiceInstance]] = {
+    findServiceInstances(None)
+  }
+
+  def findServiceInstances(filter: Option[Document])(implicit mongoClient: MongoClient,
+                                                     dbName: String,
+                                                     ec: ExecutionContext,
+                                                     f: Document => ServiceInstance): Future[Vector[ServiceInstance]] = {
+
     lazy val collectionName = "service_instances"
     val collection = mongoClient.getDatabase(dbName).getCollection(collectionName)
 
-    //Document("status" -> Enabled.toString)
-    collection.find().toFuture().map {
-      case docs =>
-        docs.foldLeft[Vector[ServiceInstance]](Vector.empty) { (z, doc) =>
-        z :+ f(doc)
-      }
+    def mapper(docs: Seq[Document]): Vector[ServiceInstance] =  docs
+      .foldLeft[Vector[ServiceInstance]](Vector.empty) { (z, doc) => z :+ f(doc) }
+
+    filter match {
+      case None =>
+        collection.find().toFuture().map(mapper)
+      case Some(fil) =>
+        collection.find(fil).toFuture().map(mapper)
     }
   }
-
-
 }

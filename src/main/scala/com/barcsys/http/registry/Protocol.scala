@@ -145,7 +145,7 @@ object Protocol {
               case v: Endpoint => z + (k -> EndpointFormat.write(v))
               case v: Vector[_] if k == "endpoints" =>
                 val jsoEndpoints = v.foldLeft[Vector[JsValue]](Vector.empty) { (z0, p0) =>
-                  z0 :+ EndpointFormat.write(p0.asInstanceOf)
+                  z0 :+ EndpointFormat.write(p0.asInstanceOf[Endpoint])
                 }
                 z + (k -> JsArray(jsoEndpoints))
               case v: Vector[_] if k == "tags" =>
@@ -201,7 +201,7 @@ object Protocol {
               case v: ServiceInstanceStatus => z + (k -> JsString(v.toString))
               case v: Vector[_] if k == "tags" =>
                 val jsonTags = v.foldLeft[Vector[JsValue]](Vector.empty) {(z0, p0) =>
-                  z0 :+ TagFormat.write(p0.asInstanceOf)
+                  z0 :+ TagFormat.write(p0.asInstanceOf[Tag])
                 }
                 z + (k -> JsArray(jsonTags))
             }
@@ -217,10 +217,37 @@ object Protocol {
     implicit object ServiceInstanceFilterFormat extends RootJsonFormat[ServiceInstanceFilter] {
       def read(json: JsValue): ServiceInstanceFilter = {
         val jso = json.asJsObject
+        val serviceId = stringOf("serviceId", jso)
+        val serviceVersion = stringOf("serviceVersion", jso)
+        val serviceTags = jsArrayValueOf[Tag]("serviceTags", jso)(TagFormat.read)
+        val serviceInstanceTags = jsArrayValueOf[Tag]("serviceInstanceTags", jso)(TagFormat.read)
+
+        ServiceInstanceFilter(serviceId, serviceVersion, serviceTags, serviceInstanceTags)
 
       }
 
-      def write(obj: ServiceInstanceFilter): JsValue = ???
+      def write(obj: ServiceInstanceFilter): JsValue = {
+        JsObject(
+          Vector(
+            "serviceId" -> obj.serviceId,
+            "serviceVersion" -> obj.serviceVersion,
+            "serviceTags" -> obj.serviceTags,
+            "serviceInstanceTags" -> obj.serviceInstanceTags
+          ).foldLeft[Map[String, JsValue]](Map.empty){(z, p) =>
+            p match {
+              case (k, Some(x)) => x match {
+                case v: String => z + (k -> JsString(v))
+                case v: Vector[_] =>
+                  val jsonTags = v.foldLeft[Vector[JsValue]](Vector.empty){(z0, p0) =>
+                    z0 :+ TagFormat.write(p0.asInstanceOf)
+                  }
+                  z + (k -> JsArray(jsonTags))
+              }
+              case _ => z
+            }
+          }
+        )
+      }
     }
 
   }

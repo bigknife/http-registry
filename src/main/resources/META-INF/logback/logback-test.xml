@@ -11,7 +11,7 @@
         </layout>
     </appender>
 
-    <logger name="com.barcsys" level="INFO" additivity="false">
+    <logger name="com.barcsys" level="WARN" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 

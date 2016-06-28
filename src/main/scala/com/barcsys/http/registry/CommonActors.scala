@@ -6,8 +6,8 @@ import akka.actor.{Actor, ActorContext, ActorRef, ActorSelection, ActorSystem, P
 import akka.util.Timeout
 import com.barcsys.http.registry.BaseActors.{ActorMessageTrack, ActorMetrics, Slf4jLogging}
 import com.barcsys.http.registry.CommonActors.MemCache._
-import com.barcsys.http.registry.CommonActors.PersistedStore.{GetAllEnabledServiceInstances, SaveServiceInstanceMsg, UpdateServiceInstance}
-import com.barcsys.http.registry.Types.ServiceInstance
+import com.barcsys.http.registry.CommonActors.PersistedStore.{FilterServiceInstanceMsg, GetAllEnabledServiceInstancesMsg, SaveServiceInstanceMsg, UpdateServiceInstanceMsg}
+import com.barcsys.http.registry.Types.{ServiceInstance, ServiceInstanceFilter}
 import org.mongodb.scala.MongoClient
 
 import scala.concurrent.duration._
@@ -35,7 +35,7 @@ object CommonActors {
       case GetAll(clazz) => sender ! cache.get().filter(x => x._2.getClass == clazz)
       case LoopLoadFromPersisted(duration) =>
         import context.dispatcher
-        (PersistedStore.selectActorFromContext ? GetAllEnabledServiceInstances).map {
+        (PersistedStore.selectActorFromContext ? GetAllEnabledServiceInstancesMsg).map {
           case x: Vector[_] => x.foreach {
             case si: ServiceInstance =>
               cache.set(cache.get() + (si.uid.get -> si))
@@ -98,23 +98,32 @@ object CommonActors {
       case SaveServiceInstanceMsg(x) =>
         Store.saveServiceInstance(x)
 
-      case GetAllEnabledServiceInstances =>
+      case GetAllEnabledServiceInstancesMsg =>
         val _sender = sender
         Store.findEnabledServiceInstances.foreach(_sender ! _)
 
-      case UpdateServiceInstance(x) =>
+      case UpdateServiceInstanceMsg(x) =>
         Store.updateServiceInstance(x)
 
-
-      case _ =>
+      case FilterServiceInstanceMsg(filter) =>
+        //todo 待完成
+        val doc = Store.Implicits.serviceInstanceFilterToDocument(filter)
+        val _sender = sender
+        Store.findServiceInstances(Some(doc)).onSuccess {
+          case x: Vector[ServiceInstance] => _sender ! x
+        }
     }
   }
 
   object PersistedStore {
 
+    case object GetAllEnabledServiceInstancesMsg
+
     case class SaveServiceInstanceMsg(serviceInstance: ServiceInstance)
-    case object GetAllEnabledServiceInstances
-    case class UpdateServiceInstance(serviceInstance: ServiceInstance)
+
+    case class UpdateServiceInstanceMsg(serviceInstance: ServiceInstance)
+
+    case class FilterServiceInstanceMsg(filter: ServiceInstanceFilter)
 
     def createActor(implicit system: ActorSystem, mongoClient: MongoClient, dbName: String, ec: ExecutionContext): ActorRef = {
       val props = Props(classOf[PersistedStore], mongoClient, dbName, ec)

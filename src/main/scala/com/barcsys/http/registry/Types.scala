@@ -39,6 +39,16 @@ object Types {
       )
   }
 
+  implicit def serviceInstanceFilterToVector(obj: ServiceInstanceFilter): Vector[(String, Option[Any])] = {
+    Vector(
+      "serviceId" -> obj.serviceId,
+      "serviceVersion" -> obj.serviceVersion,
+      "serviceTags" -> obj.serviceTags,
+      "serviceInstanceTags" -> obj.serviceInstanceTags,
+      "status" -> Some("Running")
+    )
+  }
+
   /**
     * Service status, Enabled or Disabled
     */
