@@ -32,7 +32,7 @@ echo "copy working files from jeknins to hosts:$TMP_DIR_BUILD"
 scp $WORKSPACE/docker/* root@$DOCKER_BUILD_HOST:$TMP_DIR_BUILD
 scp $WAR_FILE root@$DOCKER_BUILD_HOST:$TMP_DIR_BUILD
 ssh -nq root@$DOCKER_BUILD_HOST "
-    unzip $TMP_DIR_BUILD/fatopentsdb_2.11-0.1.0.4-SNAPSHOT.war -d $TMP_DIR_BUILD/war
+    unzip $TMP_DIR_BUILD/http_registry_2.11-0.1.0.0-SNAPSHOT.war -d $TMP_DIR_BUILD/war
 "
 
 # STEP4: checkout latest opts
