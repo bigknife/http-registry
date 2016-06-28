@@ -53,7 +53,9 @@ object BizActors {
         val client = sender
         serviceInstanceFilter ! QueryServiceInstanceMsg(client, entity)
 
-      case x: HttpRequest => sender ! HttpResponse(status = NotFound, entity = "Resource Not Found")
+      case x: HttpRequest =>
+        logger.warn(s"$x")
+        sender ! HttpResponse(status = NotFound, entity = "Resource Not Found")
     }
   }
 
