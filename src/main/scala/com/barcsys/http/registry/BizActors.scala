@@ -54,7 +54,7 @@ object BizActors {
         serviceInstanceFilter ! QueryServiceInstanceMsg(client, entity)
 
       case x: HttpRequest =>
-        logger.warn(s"$x")
+        logger.warn(s"${x.uri.path}")
         sender ! HttpResponse(status = NotFound, entity = "Resource Not Found")
     }
   }
