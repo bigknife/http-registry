@@ -3,7 +3,7 @@
   "cpus": 0.5,
   "mem": 384,
   "disk": 0,
-  "instances": 3,
+  "instances": 1,
   "env": {
     "HTTP_REGISTRY_HOST" : "0.0.0.0",
     "HTTP_REGISTRY_PORT" : "9200",
