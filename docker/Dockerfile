@@ -8,7 +8,7 @@ FROM docker.inflab.com/servicebase
 MAINTAINER songzenghui@weibopay.com
 
 COPY ./war /opt/share/tomcat6/webapps/ROOT
-COPY ./opts/openview /opt/pay/config/basis/inf/openview
+COPY ./opts/http-registry /opt/pay/config/basis/inf/http-registry
 
 EXPOSE 8080
 

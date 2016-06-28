@@ -8,10 +8,10 @@ OPTS_SVN_PATH=$2
 SOURCE_STABILITY=$3
 MARATHON_DEPLOY_ID=$4
 #the deployed war file path(absolutely)
-WAR_FILE=$WORKSPACE/FatOpenTSDB/target/scala-2.11/fatopentsdb_2.11-0.1.0.4-SNAPSHOT.war
+WAR_FILE=$WORKSPACE/target/scala-2.11/http_registry_2.11-0.1.0.0-SNAPSHOT.war
 IMAGE_NAME=openview.fatopentsdb.$SOURCE_STABILITY
 
-TMP_DIR_PREFIX=/tmp/fatopentsdb_build_
+TMP_DIR_PREFIX=/tmp/http_registry_build_
 TMP_DIR_BUILD=$TMP_DIR_PREFIX$BUILD_NUMBER
 
 MARATHON_DEPLOY_TPL=$TMP_DIR_BUILD/marathon.tpl.json

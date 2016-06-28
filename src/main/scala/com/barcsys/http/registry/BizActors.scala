@@ -42,6 +42,9 @@ object BizActors {
     def wrappedReceive: Receive = {
       case _: Http.Connected => sender ! Http.Register(self)
 
+      case HttpRequest(_, Uri.Path("/v1"), _, _, _ ) =>
+        sender ! HttpResponse(entity = "http-registry/v1:0.1.0.0-SNAPSHOT")
+
       case HttpRequest(POST, Uri.Path("/v1/services"), _, entity, _) =>
         val client = sender
         serviceRegister ! ServiceRegistration(client, entity)

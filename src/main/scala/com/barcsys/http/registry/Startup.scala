@@ -1,7 +1,7 @@
 package com.barcsys.http.registry
 
 import javax.servlet.ServletConfig
-import javax.servlet.http.HttpServlet
+import javax.servlet.http.{HttpServlet, HttpServletRequest, HttpServletResponse}
 
 import Misc.LogbackConfigurator._
 import org.slf4j.LoggerFactory
@@ -39,6 +39,10 @@ object Startup {
       Server.start(interface, port)
 
       logger.warn("server start!")
+    }
+
+    override def doGet(req: HttpServletRequest, resp: HttpServletResponse): Unit = {
+      resp.getWriter.write("barcsys http registry 0.1.0.0-SNAPSHOT")
     }
 
     override def destroy(): Unit = {

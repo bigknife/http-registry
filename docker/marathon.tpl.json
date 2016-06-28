@@ -5,15 +5,14 @@
   "disk": 0,
   "instances": 3,
   "env": {
-    "RABBITMQ_CONNECTION": "abbitmq://FatOpenTSDB:FatOpenTSDB@10.65.178.162:5672",
-    "OPENTSDB_CONNECTION": "http://10.65.178.57:4242",
-    "MONGO_CONNECTION": "mongodb://10.65.178.34:27017/fatopentsdb",
-    "ALERT_CONF" : "/opt/pay/config/basis/inf/openview/fatopentsdb/alert_rule.json"
+    "HTTP_REGISTRY_HOST" : "0.0.0.0",
+    "HTTP_REGISTRY_PORT" : "9200",
+    "HTTP_REGISTRY_MONGO" : "mongo://10.65.178.34:27017/http_registry"
   },
   "healthChecks": [
     {
       "protocol": "HTTP",
-      "path": "/",
+      "path": "/v1",
       "portIndex": 0,
       "gracePeriodSeconds": 300,
       "intervalSeconds": 60,
@@ -26,7 +25,7 @@
       "image": "$image",
       "network": "BRIDGE",
       "portMappings" : [
-        {"containerPort":8080, "hostPort": 0, "servicePort": 10801}
+        {"containerPort":9200, "hostPort": 0, "servicePort": 19200}
       ]
     },
     "type": "DOCKER"
