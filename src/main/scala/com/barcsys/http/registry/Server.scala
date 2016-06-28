@@ -3,10 +3,12 @@ package com.barcsys.http.registry
 import akka.actor.{ActorSystem, Props}
 import akka.io.IO
 import com.barcsys.http.registry.BizActors.Heartbeat.CheckAllMsg
-import com.barcsys.http.registry.CommonActors.MemCache.{LoopLoadFromPersisted}
+import com.barcsys.http.registry.CommonActors.MemCache.LoopLoadFromPersisted
 import com.barcsys.http.registry.CommonActors.{MemCache, PersistedStore}
 import com.barcsys.http.registry.Misc.ConnectionString
 import spray.can.Http
+import akka.pattern.ask
+import akka.util.Timeout
 
 /**
   * Created by bigknife on 16/6/23.
@@ -44,7 +46,10 @@ object Server {
     IO(Http) ! Http.Bind(listener, interface, port)
   }
 
-  def stop = {
-    system.terminate()
+  def stop() = {
+    import scala.concurrent.duration._
+    system.scheduler.scheduleOnce(1.seconds) {
+      system.terminate()
+    }
   }
 }

@@ -1,0 +1,11 @@
+<web-app>
+    <servlet>
+        <servlet-name>startup servlet</servlet-name>
+        <servlet-class>com.barcsys.http.registry.Startup$StartupServlet</servlet-class>
+        <load-on-startup>0</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>startup servlet</servlet-name>
+        <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+</web-app>
